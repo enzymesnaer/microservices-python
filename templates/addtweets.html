@@ -1,0 +1,47 @@
+<html>
+
+<head>
+    <title>Twitter Application</title>
+</head>
+
+<body>
+    <form data-bind="submit: addTweet">
+        <div class="navbar">
+            <div class="navbar-inner">
+                <a class="brand" href="#">Tweet App Demo</a>
+            </div>
+        </div>
+        <div id="main" class="container">
+            <table class="table table-striped">
+        <div>
+            <tr>
+                <td><div>Username: <input data-bind='value: username' type="username" placeholder="Username of user"></div> </td>
+            </tr>
+        </div>
+        <div>
+            <tr>
+                <td>Body: <textarea  data-bind="value: body" placeholder="Content of tweet" type="text"></textarea> </td>
+            </tr>
+        </div>
+        <tr>
+            <td><button  class="btn" type="submit">Add Tweet</button></td>
+        </tr>
+        
+        </table>
+    </form>
+    <ul data-bind="foreach: tweets_list, visible: tweets_list().length>0">
+        <li>
+            <p data-bind="text: username"></p>
+            <p data-bind="text: body"></p>
+            <p data-bind="text: timestamp"></p>
+        </li>
+    </ul>
+
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/knockout/2.2.0/knockout-min.js"></script>
+    <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+    <script src="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+    <script src="{{ url_for('static', filename='tweet.js') }}"></script>
+</body>
+
+</html>

@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, make_response, abort, request
 import json
 import sqlite3
-
+from time import strftime, gmtime
 
 app = Flask(__name__)
 
@@ -158,6 +158,120 @@ def delete_user():
     return jsonify({'status': del_user(user)}, 200)
 
 
+def upd_user(user_dict):
+    conn = sqlite3.connect('mydb.db')
+    print("Opened database successsfully")
+    cursor = conn.cursor()
+    cursor.execute(f'SELECT * from users where id = "{user_dict["id"]}"')
+    data = cursor.fetchall()
+    # print(data)
+    if len(data) == 0:
+        abort(404)
+    else:
+        user = {}
+        key_list = user_dict.keys()
+        for i in key_list:
+            if i != "id":
+                print (user_dict, i)
+                cursor.execute("""UPDATE users set {0} = ? WHERE id = ?""".format(i), (user_dict[i], user_dict['id']))
+                conn.commit()
+        return "Success"
+
+
+@app.route('/api/v1/users/<int:user_id>', methods=['PUT'])
+def update_user(user_id):
+    user = {}
+    if not request.json:
+        abort(400)
+    user['id'] = user_id
+    key_list = request.json.keys()
+    for i in key_list:
+        user[i] = request.json[i]
+    # print(user)
+    return jsonify({'status': upd_user(user)},200)
+
+
+def list_tweets():
+    conn = sqlite3.connect('mydb.db')
+    print("Opened database successfully")
+    api_list = []
+    cursor = conn.execute('SELECT  username, body, tweet_time, id FROM tweets')
+    data = cursor.fetchall()
+    
+    if len(data) != 0:
+        for row in data:
+            tweets = {}
+            tweets['username'] = row[0]
+            tweets['body'] = row[1]
+            tweets['timestamp'] = row[2]
+            tweets['id'] = row[3]
+            api_list.append(tweets)
+            conn.close()
+        return api_list
+    else:
+        return api_list
+    
+
+
+@app.route('/api/v2/tweets', methods=['GET'])
+def get_tweets():
+    return jsonify({'tweets_list': list_tweets()})
+
+
+def add_tweet(new_tweets):
+    conn = sqlite3.connect('mydb.db')
+    print("Opened database succesfully")
+    cursor = conn.cursor()
+    cursor.execute(f'SELECT * FROM users WHERE username="{new_tweets["username"]}"')
+    data = cursor.fetchall()
+
+    if len(data) == 0:
+        abort(404)
+    else:
+        cursor.execute("INSERT INTO tweets (username, body, tweet_time) VALUES (?,?,?)", (new_tweets['username'],new_tweets['body'],new_tweets['created_at']))
+        conn.commit()
+        return "Success"
+        
+
+@app.route('/api/v2/tweets', methods=['POST'])
+def add_tweets():
+    user_tweet = {}
+    if not request.json or not 'username' in request.json or not 'body' in request.json:
+        abort(400)
+    user_tweet['username'] = request.json['username']
+    user_tweet['body'] = request.json['body']
+    user_tweet['created_at'] = strftime("%Y-%m-%d T%H:%M:%SZ", gmtime())
+    print(user_tweet)
+    return jsonify({'status': add_tweet(user_tweet)}, 200)
+
+
+def list_tweet(uid):
+    print(uid)
+    conn = sqlite3.connect('mydb.db')
+    print("Opened database successfully")
+    api_list = []
+    cursor = conn.cursor()
+    cursor.execute(f'SELECT * FROM tweets WHERE id={uid}')
+    data = cursor.fetchall()
+    print(data)
+    if len(data) == 0:
+        abort(404)
+    else:
+        user = {}
+        user['id'] = data[0][0]
+        user['username'] = data[0][1]
+        user['body'] = data[0][2]
+        user['tweet_time'] = data[0][3]
+    api_list.append(user)
+    conn.close()
+    return jsonify(api_list)
+        
+
+@app.route('/api/v2/tweets/<int:id>', methods=['GET'])
+def get_tweet(id):
+    return list_tweet(id)
+
+
 @app.errorhandler(404)
 def resource_not_found(error):
     return make_response(jsonify({'error': 'Resource not found!'}), 404)
@@ -167,5 +281,36 @@ def resource_not_found(error):
 def invalid_request(error):
     return make_response(jsonify({'error': 'Bad Request'}), 400)
 
+# -------------------------------------------------------------------
+#--------------------------------------------------------------------
+
+from flask import render_template
+@app.route('/adduser')
+def adduser():
+    return render_template('adduser.html')
+
+@app.route('/addtweets')
+def addtweetjs():
+    return render_template('addtweets.html')
+
+
+# -------------------------------------------------------------------
+# -------------------------------------------------------------------
+
+from flask_cors import CORS, cross_origin
+# To enable CORS
+CORS(app)
+cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+
+# -------------------------------------------------------------------
+# -------------------------------------------------------------------
+@app.route('/')
+def main():
+    return render_template('main.html')
+
+@app.route('/addname')
+def addname():
+    
 
 app.run(host='127.0.0.1', port=5000, debug=True)
